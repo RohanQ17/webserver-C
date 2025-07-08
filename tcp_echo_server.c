@@ -1,4 +1,4 @@
-// Standard C headers
+
 #include <stdio.h>      // For printf(), perror()
 #include <stdlib.h>     // For exit()
 #include <string.h>     // For memset()
@@ -24,12 +24,12 @@ int main() {
     // SOCK_STREAM: TCP
     // 0: Let OS choose the protocol (will default to TCP for SOCK_STREAM)
     server_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (server_fd < 0) {
+    if (server_fd < 0) {  // checxk for errors
         perror("socket failed");
         exit(EXIT_FAILURE);
     }
 
-    // 2. Set up server address struct
+    // 2. Set up server address struct, need to do memset to server_addr as it might contain garbage value
     memset(&server_addr, 0, sizeof(server_addr)); // Zero out the memory
     server_addr.sin_family = AF_INET;             // Address family: IPv4
     server_addr.sin_addr.s_addr = INADDR_ANY;     // Accept connections from any interface (0.0.0.0)

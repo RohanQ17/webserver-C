@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C Web Server - Retro Terminal</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #0a0a0a;
+            color: #00ff41;
+            font-family: 'Courier Prime', monospace;
+            line-height: 1.4;
+            overflow-x: hidden;
+            position: relative;
+        }
+        
+        /* Scanlines effect */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 255, 65, 0.03),
+                rgba(0, 255, 65, 0.03) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+            pointer-events: none;
+            z-index: 1000;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            animation: flicker 0.15s infinite linear alternate;
+        }
+        
+        @keyframes flicker {
+            0% { opacity: 1; }
+            100% { opacity: 0.98; }
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border: 2px solid #00ff41;
+            padding: 20px;
+            background: rgba(0, 255, 65, 0.05);
+            text-shadow: 0 0 10px #00ff41;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+        
+        .header .subtitle {
+            color: #ffff00;
+            font-size: 1.2em;
+            text-shadow: 0 0 5px #ffff00;
+        }
+        
+        .terminal-window {
+            background: #001100;
+            border: 2px solid #00ff41;
+            border-radius: 0;
+            margin: 20px 0;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+        }
+        
+        .terminal-header {
+            background: #00aa33;
+            color: #000;
+            padding: 8px 15px;
+            font-weight: bold;
+            border-bottom: 1px solid #00ff41;
+        }
+        
+        .terminal-body {
+            padding: 20px;
+            font-size: 14px;
+        }
+        
+        .prompt {
+            color: #ff0080;
+            text-shadow: 0 0 5px #ff0080;
+        }
+        
+        .command {
+            color: #00ffff;
+            text-shadow: 0 0 5px #00ffff;
+        }
+        
+        .output {
+            color: #ffff00;
+            margin-left: 20px;
+        }
+        
+        .nav-menu {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+        
+        .nav-btn {
+            background: transparent;
+            border: 2px solid #00ff41;
+            color: #00ff41;
+            padding: 12px 24px;
+            text-decoration: none;
+            font-family: 'Courier Prime', monospace;
+            font-size: 16px;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-shadow: 0 0 5px #00ff41;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .nav-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 65, 0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .nav-btn:hover::before {
+            left: 100%;
+        }
+        
+        .nav-btn:hover {
+            background: rgba(0, 255, 65, 0.1);
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.5);
+            transform: translateY(-2px);
+        }
+        
+        .status-bar {
+            background: #002200;
+            border: 1px solid #00aa33;
+            padding: 15px;
+            margin: 20px 0;
+            font-size: 12px;
+        }
+        
+        .status-item {
+            margin: 5px 0;
+        }
+        
+        .status-ok {
+            color: #00ff00;
+        }
+        
+        .status-warn {
+            color: #ffff00;
+        }
+        
+        .ascii-art {
+            text-align: center;
+            margin: 30px 0;
+            color: #00aa55;
+            font-size: 10px;
+            line-height: 1.1;
+            text-shadow: 0 0 8px #00ff41;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            border-top: 1px solid #00ff41;
+            color: #00aa33;
+            font-size: 12px;
+        }
+        
+        .blink {
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+        
+        .form-section {
+            background: #001a00;
+            border: 1px solid #00ff41;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .form-section h3 {
+            color: #ffff00;
+            margin-bottom: 15px;
+            text-shadow: 0 0 5px #ffff00;
+        }
+        
+        .form-group {
+            margin: 15px 0;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #00ff41;
+        }
+        
+        .form-group input {
+            background: #000;
+            border: 1px solid #00ff41;
+            color: #00ff41;
+            padding: 8px 12px;
+            font-family: 'Courier Prime', monospace;
+            width: 100%;
+            max-width: 300px;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 1.8em;
+                letter-spacing: 1px;
+            }
+            
+            .nav-menu {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .ascii-art {
+                font-size: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>◤ C Web Server ◥</h1>
+            <div class="subtitle">~ Retro Terminal Interface ~</div>
+        </div>
+        
+        <div class="terminal-window">
+            <div class="terminal-header">SYSTEM STATUS - ONLINE</div>
+            <div class="terminal-body">
+                <div><span class="prompt">root@webserver:~$</span> <span class="command">./webserver --status</span></div>
+                <div class="output">Server initialized successfully...</div>
+                <div class="output">Port 8080 ........................ [<span class="status-ok">ACTIVE</span>]</div>
+                <div class="output">Socket binding ................... [<span class="status-ok">OK</span>]</div>
+                <div class="output">Request handler .................. [<span class="status-ok">READY</span>]</div>
+                <div><span class="prompt">root@webserver:~$</span> <span class="blink">█</span></div>
+            </div>
+        </div>
+        
+        <div class="nav-menu">
+            <a href="/" class="nav-btn">[ Home ]</a>
+            <a href="/about" class="nav-btn">[ About ]</a>
+            <a href="/file" class="nav-btn">[ Files ]</a>
+            <a href="/test" class="nav-btn">[ Test ]</a>
+        </div>
+        
+        <div class="ascii-art">
+            <pre>
+    ██████╗    ██╗    ██╗███████╗██████╗ ███████╗███████╗██████╗ ██╗   ██╗███████╗██████╗ 
+    ██╔════╝    ██║    ██║██╔════╝██╔══██╗██╔════╝██╔════╝██╔══██╗██║   ██║██╔════╝██╔══██╗
+    ██║         ██║ █╗ ██║█████╗  ██████╔╝███████╗█████╗  ██████╔╝██║   ██║█████╗  ██████╔╝
+    ██║         ██║███╗██║██╔══╝  ██╔══██╗╚════██║██╔══╝  ██╔══██╗╚██╗ ██╔╝██╔══╝  ██╔══██╗
+    ╚██████╗    ╚███╔███╔╝███████╗██████╔╝███████║███████╗██║  ██║ ╚████╔╝ ███████╗██║  ██║
+     ╚═════╝     ╚══╝╚══╝ ╚══════╝╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝
+            </pre>
+        </div>
+        
+        <div class="status-bar">
+            <div class="status-item">⚡ SYSTEM: <span class="status-ok">OPERATIONAL</span></div>
+            <div class="status-item">🔗 CONNECTION: <span class="status-ok">ESTABLISHED</span></div>
+            <div class="status-item">📡 PROTOCOL: <span class="status-warn">HTTP/1.0</span></div>
+            <div class="status-item">🛡️  SECURITY: <span class="status-warn">BASIC</span></div>
+        </div>
+        
+        <div class="form-section">
+            <h3>&gt; Test POST Request</h3>
+            <form method="POST" action="/submit">
+                <div class="form-group">
+                    <label>USERNAME:</label>
+                    <input type="text" name="username" placeholder="Enter username..." required>
+                </div>
+                <div class="form-group">
+                    <label>MESSAGE:</label>
+                    <input type="text" name="message" placeholder="Enter message...">
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="nav-btn">[ TRANSMIT ]</button>
+                </div>
+            </form>
+        </div>
+        
+        <div class="terminal-window">
+            <div class="terminal-header">SERVER INFORMATION</div>
+            <div class="terminal-body">
+                <div><strong>Language:</strong> C (POSIX)</div>
+                <div><strong>Architecture:</strong> Socket-based</div>
+                <div><strong>Threading:</strong> Single-threaded (for now)</div>
+                <div><strong>Features:</strong> HTTP parsing, file serving, routing</div>
+                <div><strong>Status:</strong> <span class="status-ok">EXPERIMENTAL</span></div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <div>Built with raw C and POSIX sockets</div>
+            <div>Welcome to the matrix... I mean, web server <span class="blink">█</span></div>
+        </div>
+    </div>
+    
+    <script>
+        // Add some retro terminal effects
+        document.addEventListener('DOMContentLoaded', function() {
+            // Simulate typing effect on load
+            const outputs = document.querySelectorAll('.output');
+            outputs.forEach((output, index) => {
+                output.style.opacity = '0';
+                setTimeout(() => {
+                    output.style.opacity = '1';
+                    output.style.transition = 'opacity 0.5s ease';
+                }, index * 200);
+            });
+            
+            // Add click sound effect simulation (visual feedback)
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    this.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        this.style.transform = '';
+                    }, 100);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
